@@ -1,0 +1,4 @@
+# Proxy placeholder
+# If you need to proxy Clerk or other services in development, add rules here.
+# Example (for many tools you'd use a dev server config instead):
+# /api/* -> http://localhost:3000/api/

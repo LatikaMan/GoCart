@@ -1,6 +1,5 @@
 generator client {
     provider        = "prisma-client-js"
-    previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -32,6 +31,7 @@ model Product {
     mrp         Float
     price       Float
     images      String[]
+    tags        String[] @default([])
     category    String
     inStock     Boolean  @default(true)
     storeId     String
@@ -42,6 +42,15 @@ model Product {
     store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
     orderItems OrderItem[]
     rating     Rating[]
+}
+
+// Tracks user views/actions for simple behavior based recommendations
+model UserActivity {
+    id        String   @id @default(cuid())
+    userId    String
+    productId String
+    action    String
+    createdAt DateTime @default(now())
 }
 
 enum OrderStatus {
