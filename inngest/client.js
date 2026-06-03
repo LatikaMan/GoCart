@@ -1,4 +1,5 @@
 // src/inngest/client.ts
 import { Inngest } from "inngest";
 
-export const inngest = new Inngest({ id: "GoCard-ecommerce" });
+export const inngest = new
+ Inngest({ id: "GoCart-ecommerce" });
