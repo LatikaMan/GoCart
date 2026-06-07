@@ -68,22 +68,17 @@ export default function AdminCoupons() {
 
     const deleteCoupon = async (code) => {
         try {
-            const confirmDelete = window.confirm("Are you sure you want to delete this coupon?")
-            if (!confirmDelete) return;
-
             const token = await getToken()
             const {data} = await axios.delete(`/api/admin/coupon?code=${code}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             })
-            toast.success(data.message)
             await fetchCoupons()
-            toast.success("coupon deleted successfully")
+            return data.message
             
         } catch (error) {
-         toast.error("Failed to delete coupon")
-            
+            throw error
         }
 
     }
@@ -170,7 +165,11 @@ export default function AdminCoupons() {
                                     <td className="py-3 px-4 text-slate-800">{coupon.forNewUser ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.forMember ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">
-                                        <DeleteIcon onClick={() => toast.promise(deleteCoupon(coupon.code), { loading: "Deleting coupon..." })} className="w-5 h-5 text-red-500 hover:text-red-800 cursor-pointer" />
+                                        <DeleteIcon onClick={() => {
+                                            if (window.confirm("Are you sure you want to delete this coupon?")) {
+                                                toast.promise(deleteCoupon(coupon.code), { loading: "Deleting coupon...", success: (msg) => msg, error: "Failed to delete" })
+                                            }
+                                        }} className="w-5 h-5 text-red-500 hover:text-red-800 cursor-pointer" />
                                     </td>
                                 </tr>
                             ))}

@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-import prisma from "@/lib/prisma"; // Make sure prisma is imported correctly
+import prisma from "@/lib/prisma"; // Ensure prisma client is imported properly
 
 export const syncUserCreation = inngest.createFunction(
     { id: "sync-user-create", event: "clerk/user.created" },
@@ -47,10 +47,22 @@ export const syncUserDeletion = inngest.createFunction(
     }
 );
 
+// 🔥 FIX: Added Coupon Automatic Deletion Logic
 export const deleteCouponOnExpiration = inngest.createFunction(
     { id: "delete-expired-coupons", event: "app/coupon.created" },
     async ({ event, step }) => {
-        const { data } = event;
-        // Aapka coupon expiration logic yahan aayega
+        const { couponCode, expiresAt } = event.data;
+
+        // 1. Coupon ke expire hone tak execution ko hold/sleep pe daalo
+        await step.sleepUntil("wait-for-coupon-expiration", expiresAt);
+
+        // 2. Sleep complete hote hi database se coupon delete karo
+        await step.run("delete-coupon-from-db", async () => {
+            await prisma.coupon.delete({
+                where: { code: couponCode }
+            });
+        });
+
+        return { success: true, message: `Coupon ${couponCode} deleted successfully.` };
     }
 );
