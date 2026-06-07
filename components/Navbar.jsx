@@ -51,18 +51,10 @@ const Navbar = () => {
                         </Link>
                         {
                             !user ? (
-                                   <button  onClick= {openSignIn} className="px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full">
-                            Login
-                        </button>
+                                <button onClick={openSignIn} className="px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full">Login</button>
                             ) : (
-                                <UserButton>
-                                        <UserButton.Menu>
-                                            <UserButton.Action labelIcon={<Package size={16} />} label="My Orders" onClick={() => router.push('/orders')} />
-                                        </UserButton.Menu>
-                                        
-                                </UserButton>
+                                <UserButton />
                             )
-
                         }
 
 
@@ -73,22 +65,11 @@ const Navbar = () => {
                     {/* Mobile User Button  */}
                     <div className="sm:hidden">
                         {user ? (
-                            <div><UserButton>
-                                        <UserButton.Menu>
-                                        <UserButton.Action labelIcon={<ShoppingCart size={16} />} label="cart" onClick={() => router.push('/cart')} />
-                                    </UserButton.Menu>
-                                        
-                                </UserButton>
-                                <UserButton>
-                                        <UserButton.Menu>
-                                        <UserButton.Action labelIcon={<Package size={16} />} label="My Orders" onClick={() => router.push('/orders')} />
-                                    </UserButton.Menu>
-                                        
-                                </UserButton></div>
+                            <div>
+                                <UserButton />
+                            </div>
                         ) : (
-                            <button  onClick={openSignIn} className="px-7 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-sm transition text-white rounded-full">
-                            Login
-                        </button>
+                            <button onClick={openSignIn} className="px-7 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-sm transition text-white rounded-full">Login</button>
                         )
                     }
                        

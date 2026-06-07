@@ -4,30 +4,51 @@ import Loading from "@/components/Loading"
 import OrdersAreaChart from "@/components/OrdersAreaChart"
 import { CircleDollarSignIcon, ShoppingBasketIcon, StoreIcon, TagsIcon } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useAuth } from "@clerk/nextjs"
+import { toast } from "react-hot-toast"
 
 export default function AdminDashboard() {
+    const {getToken} = useAuth()
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$'
 
     const [loading, setLoading] = useState(true)
     const [dashboardData, setDashboardData] = useState({
-        products: 0,
-        revenue: 0,
-        orders: 0,
-        stores: 0,
+        totalProducts: 0,
+        totalEarnings: 0,
+        totalOrders: 0,
+        totalUsers: 0,
         allOrders: [],
     })
 
     const dashboardCardsData = [
-        { title: 'Total Products', value: dashboardData.products, icon: ShoppingBasketIcon },
-        { title: 'Total Revenue', value: currency + dashboardData.revenue, icon: CircleDollarSignIcon },
-        { title: 'Total Orders', value: dashboardData.orders, icon: TagsIcon },
-        { title: 'Total Stores', value: dashboardData.stores, icon: StoreIcon },
+        { title: 'Total Products', value: dashboardData.totalProducts, icon: ShoppingBasketIcon },
+        { title: 'Total Revenue', value: currency + dashboardData.totalEarnings, icon: CircleDollarSignIcon },
+        { title: 'Total Orders', value: dashboardData.totalOrders, icon: TagsIcon },
+        { title: 'Total Users', value: dashboardData.totalUsers, icon: StoreIcon },
     ]
 
     const fetchDashboardData = async () => {
-        setDashboardData(dummyAdminDashboardData)
-        setLoading(false)
+       try {
+        
+        const token = await getToken()
+        const res = await fetch("/api/admin/dashboard", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+
+        if (!res.ok) {
+            throw new Error("Unauthorized access");
+        }
+
+        const data = await res.json()
+        setDashboardData(prev => ({ ...prev, ...data }))
+       } catch (error) {
+        toast.error("Failed to fetch dashboard data");
+       } finally {
+         setLoading(false)
+       }
     }
 
     useEffect(() => {
