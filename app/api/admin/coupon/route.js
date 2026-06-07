@@ -1,4 +1,4 @@
-import { auth, getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import authAdmin from "@/app/middlewares/authAdmin";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { inngest } from "@/inngest/client";
 
 export async function POST(request) {
     try {
-        const { userId } = await getAuth(request);
+        const { userId } = await auth();
         const isAdmin = await authAdmin(userId);
         if (!isAdmin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,18 +16,18 @@ export async function POST(request) {
         
         coupon.code = coupon.code.toUpperCase();
         
-        await prisma.coupon.create({
-            data: coupon}).then(async (Coupon) => 
-                {
-                    await inngest.send({
-                        name: "app/coupon.created",
-                        data: {
-                            code: Coupon.code,
-                            expiry_at: Coupon.expiry_at,
-                        }
-                    })
-                }
-            );
+        const newCoupon = await prisma.coupon.create({
+            data: coupon
+        });
+
+        await inngest.send({
+            name: "app/coupon.created",
+            data: {
+                code: newCoupon.code,
+                expiry_at: newCoupon.expiresAt,
+            }
+        });
+
         return NextResponse.json({ message: "Coupon created successfully" }, { status: 201 });
         
     } catch (error) {
@@ -40,7 +40,7 @@ export async function POST(request) {
 
     export async function DELETE(request) {
         try {
-            const { userId } = await getAuth(request);
+            const { userId } = await auth();
             const isAdmin = await authAdmin(userId);
             if (!isAdmin) {
                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

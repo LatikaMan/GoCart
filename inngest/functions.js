@@ -3,7 +3,8 @@ import prisma from "../lib/prisma";
 import { inngest } from "./client";
 
 export const syncUserCreation = inngest.createFunction(
-    { id: "sync-user-create", triggers: { event: "clerk/user.created" } },
+    { id: "sync-user-create" },
+    { event: "clerk/user.created" },
     async ({ event }) => {
         const { data } = event
         await prisma.user.create({
@@ -17,7 +18,8 @@ export const syncUserCreation = inngest.createFunction(
     }
 )
 export const syncUserUpdate = inngest.createFunction(
-    { id: "sync-user-update", triggers: { event: "clerk/user.updated" } },
+    { id: "sync-user-update" },
+    { event: "clerk/user.updated" },
     async ({ event }) => {
         const { data } = event
         await prisma.user.update({
@@ -34,7 +36,8 @@ export const syncUserUpdate = inngest.createFunction(
 )
 
 export const syncUserDeletion = inngest.createFunction(
-    { id: "sync-user-deletion", triggers: { event: "clerk/user.deleted" } },
+    { id: "sync-user-deletion" },
+    { event: "clerk/user.deleted" },
     async ({ event }) => {
         const { data } = event
         await prisma.user.delete({
@@ -47,11 +50,15 @@ export const syncUserDeletion = inngest.createFunction(
 )
 
 export const deleteCouponOnExpiration = inngest.createFunction(
-    { id: "delete-expired-coupons"},
+    { id: "delete-expired-coupons" },
     { event: 'app/coupon.created' },
     async ({event , step})=>{
         const {data} = event
         const expiryDate = new Date(data.expiry_at);
+        
+        // Prevent sleeping for invalid or past dates
+        if (isNaN(expiryDate.getTime()) || expiryDate <= new Date()) return;
+
         await step.sleepUntil('wait-for-expiry',expiryDate);
 
         await step.run("delete-coupon-from-database",async()=>{
