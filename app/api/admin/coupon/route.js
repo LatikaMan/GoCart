@@ -19,7 +19,7 @@ export async function POST(request) {
         await prisma.coupon.create({
             data: coupon}).then(async (Coupon) => 
                 {
-                    await inggest.send({
+                    await inngest.send({
                         name: "app/coupon.created",
                         data: {
                             code: Coupon.code,
@@ -40,7 +40,7 @@ export async function POST(request) {
 
     export async function DELETE(request) {
         try {
-            const { userId } = await getAuthuth(request);
+            const { userId } = await getAuth(request);
             const isAdmin = await authAdmin(userId);
             if (!isAdmin) {
                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
