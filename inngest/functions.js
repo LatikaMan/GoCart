@@ -1,6 +1,7 @@
 import { inngest } from "./client";
-import prisma from "@/lib/prisma"; // Ensure prisma client is imported properly
+import prisma from "@/lib/prisma"; // Sahi path ensure karein
 
+// 1. Sync User Creation (Clerk to DB)
 export const syncUserCreation = inngest.createFunction(
     { id: "sync-user-create", event: "clerk/user.created" },
     async ({ event }) => {
@@ -18,6 +19,7 @@ export const syncUserCreation = inngest.createFunction(
     }
 );
 
+// 2. Sync User Update (Clerk to DB)
 export const syncUserUpdate = inngest.createFunction(
     { id: "sync-user-update", event: "clerk/user.updated" },
     async ({ event }) => {
@@ -35,6 +37,7 @@ export const syncUserUpdate = inngest.createFunction(
     }
 );
 
+// 3. Sync User Deletion (Clerk to DB)
 export const syncUserDeletion = inngest.createFunction(
     { id: "sync-user-deletion", event: "clerk/user.deleted" },
     async ({ event }) => {
@@ -47,22 +50,49 @@ export const syncUserDeletion = inngest.createFunction(
     }
 );
 
-// 🔥 FIX: Added Coupon Automatic Deletion Logic
+// 4. Automatic Coupon Deletion on Expiration
 export const deleteCouponOnExpiration = inngest.createFunction(
     { id: "delete-expired-coupons", event: "app/coupon.created" },
     async ({ event, step }) => {
         const { couponCode, expiresAt } = event.data;
 
-        // 1. Coupon ke expire hone tak execution ko hold/sleep pe daalo
+        console.log("🚀 Inngest triggered for coupon:", couponCode, "Expires at:", expiresAt);
+
+        if (!couponCode || !expiresAt) {
+            console.error("❌ Missing couponCode or expiresAt in payload:", event.data);
+            return { success: false, error: "Missing data fields" };
+        }
+
+        // 1. Coupon ke expire hone tak execution ko sleep/wait mode me daalo
         await step.sleepUntil("wait-for-coupon-expiration", expiresAt);
 
         // 2. Sleep complete hote hi database se coupon delete karo
-        await step.run("delete-coupon-from-db", async () => {
-            await prisma.coupon.delete({
-                where: { code: couponCode }
-            });
+        const deletionResult = await step.run("delete-coupon-from-db", async () => {
+            try {
+                console.log(`🗑️ Attempting to delete coupon ${couponCode} from DB...`);
+                
+                // Pehle check karo coupon exist karta hai ya nahi
+                const existing = await prisma.coupon.findUnique({
+                    where: { code: couponCode }
+                });
+
+                if (!existing) {
+                    console.log(`⚠️ Coupon ${couponCode} already deleted or doesn't exist.`);
+                    return { status: "already_deleted" };
+                }
+
+                const deleted = await prisma.coupon.delete({
+                    where: { code: couponCode }
+                });
+                
+                console.log(`✅ Successfully deleted coupon: ${couponCode}`);
+                return { status: "deleted", data: deleted };
+            } catch (err) {
+                console.error(`❌ Prisma Error while deleting coupon ${couponCode}:`, err.message);
+                throw new Error(`Prisma Deletion Failed: ${err.message}`);
+            }
         });
 
-        return { success: true, message: `Coupon ${couponCode} deleted successfully.` };
+        return { success: true, result: deletionResult };
     }
 );
