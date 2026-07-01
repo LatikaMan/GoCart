@@ -1,10 +1,14 @@
-## 🚀 Tech Stack
+## 🛠️ Tech Stack
 
-- **Frontend:** Next.js, React.js, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend:** Next.js API Routes, Prisma ORM
+- **Framework:** Next.js (App Router)
+- **Frontend:** React.js
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui, Radix UI, Lucide React
+- **State Management:** Redux Toolkit
+- **Backend:** Next.js API Routes
+- **ORM:** Prisma
 - **Database:** PostgreSQL (Neon)
 - **Authentication:** Clerk
-- **Image Storage:** ImageKit
+- **Image Management:** ImageKit
 - **Background Jobs:** Inngest
 - **Deployment:** Vercel
-- **Version Control:** Git & GitHub
