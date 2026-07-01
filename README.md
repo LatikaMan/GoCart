@@ -14,3 +14,28 @@
 - **Icons:** Lucide React
 - **Deployment:** Vercel
 - **Version Control:** Git & GitHub
+
+
+
+
+## 📸 Screenshots
+
+### 🏠 Home Page
+
+![Home](screenshots/home.png)
+
+### 🛍 Products
+
+![Products](screenshots/products.png)
+### 🛍 coupon
+
+![coupon](screenshots/coupon.png)
+
+### 🛍 Admin Dashboard
+
+![Admin Dashboards](screenshots/Admin Dashboard.png)
+
+
+### 🛒 Cart
+
+![Cart](screenshots/cart.png)
