@@ -1,15 +1,25 @@
+'use client'
 import { PlusIcon, SquarePenIcon, XIcon } from 'lucide-react';
 import React, { useState } from 'react'
 import AddressModal from './AddressModal';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { Protect } from "@clerk/nextjs"
+import { useUser, useAuth } from '@clerk/nextjs';
+import axios from 'axios';
+import { clearCart } from '@/lib/features/cart/cartSlice'; // Agar fetchCart cartSlice me hai toh usey bhi yahan import karein
 
 const OrderSummary = ({ totalPrice, items }) => {
+    const { user } = useUser();
+    const { getToken } = useAuth();
+    const dispatch = useDispatch();
+    const router = useRouter();
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
 
-    const router = useRouter();
+    // Remove the line below to avoid redeclaring the 'router' variable
+    // const router = useRouter();
 
     const addressList = useSelector(state => state.address.list);
 
@@ -21,13 +31,64 @@ const OrderSummary = ({ totalPrice, items }) => {
 
     const handleCouponCode = async (event) => {
         event.preventDefault();
-        
+        try {
+            if (!user) {
+                return toast('Please login to proceed');
+            }
+            const token = await getToken();
+            const { data } = await axios.post('/api/coupon', { code: couponCodeInput }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setCoupon(data.coupon);
+            toast.success('Coupon applied successfully');
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Failed to apply coupon');
+        }
     }
 
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
+        if (!user) {
+            toast('Please login to proceed');
+            throw new Error('User not logged in');
+        }
+        if (!selectedAddress) {
+            toast.error('Please select an address');
+            throw new Error('Address not selected');
+        }
 
-        router.push('/orders')
+        try {
+            const token = await getToken();
+           const orderData = {
+    items,
+    addressId: selectedAddress.id, // 🔴 'address' ko badalkar 'addressId' kijiye
+    paymentMethod,
+}
+if(coupon){
+    orderData.couponCode = coupon.code; // 🔴 'coupon' ko badalkar 'couponCode' kijiye
+}
+            
+
+            const { data } = await axios.post('/api/order', orderData, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (paymentMethod === 'STRIPE') {
+                window.location.href = data.session.url;
+            } else {
+                toast.success('Order placed successfully');
+                dispatch(clearCart()); // fetchCart crash kar raha tha, isliye safe side ke liye clearCart use kiya
+                router.push('/orders');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.error || 'Failed to place order');
+            throw error; // Promise ko fail karne ke liye zaroor return karein taaki toast loader ruk sake
+        }
     }
 
     return (
@@ -78,13 +139,13 @@ const OrderSummary = ({ totalPrice, items }) => {
                     </div>
                     <div className='flex flex-col gap-1 font-medium text-right'>
                         <p>{currency}{totalPrice.toLocaleString()}</p>
-                        <p>Free</p>
+                        <p><Protect plan={'plan'} fallback={`${currency}5`}>Free</Protect></p>
                         {coupon && <p>{`-${currency}${(coupon.discount / 100 * totalPrice).toFixed(2)}`}</p>}
                     </div>
                 </div>
                 {
                     !coupon ? (
-                        <form onSubmit={e => toast.promise(handleCouponCode(e), { loading: 'Checking Coupon...' })} className='flex justify-center gap-3 mt-3'>
+                        <form onSubmit={e => toast.promise(handleCouponCode(e), { loading: 'Checking Coupon...', success: 'Coupon Verified', error: 'Invalid Coupon' })} className='flex justify-center gap-3 mt-3'>
                             <input onChange={(e) => setCouponCodeInput(e.target.value)} value={couponCodeInput} type="text" placeholder='Coupon Code' className='border border-slate-400 p-1.5 rounded w-full outline-none' />
                             <button className='bg-slate-600 text-white px-3 rounded hover:bg-slate-800 active:scale-95 transition-all'>Apply</button>
                         </form>
@@ -99,9 +160,18 @@ const OrderSummary = ({ totalPrice, items }) => {
             </div>
             <div className='flex justify-between py-4'>
                 <p>Total:</p>
-                <p className='font-medium text-right'>{currency}{coupon ? (totalPrice - (coupon.discount / 100 * totalPrice)).toFixed(2) : totalPrice.toLocaleString()}</p>
+                <p className='font-medium text-right'>
+                    <Protect plan={'plan'} fallback={`${currency}${coupon ?
+                        (totalPrice + 5 - (coupon.discount / 100 * totalPrice)).toFixed(2) :
+                        (totalPrice + 5).toLocaleString()
+                    }`}>
+                        {currency}{coupon ?
+                            (totalPrice - (coupon.discount / 100 * totalPrice)).toFixed(2) :
+                            totalPrice.toLocaleString()}
+                    </Protect>
+                </p>
             </div>
-            <button onClick={e => toast.promise(handlePlaceOrder(e), { loading: 'placing Order...' })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
+            <button onClick={e => toast.promise(handlePlaceOrder(e), { loading: 'placing Order...', success: 'Order Placed!', error: 'Could not place order' })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
 
             {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} />}
 

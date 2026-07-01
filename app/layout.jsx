@@ -1,27 +1,26 @@
-import { Outfit } from "next/font/google";
-import { Toaster } from "react-hot-toast";
-import StoreProvider from "@/app/StoreProvider";
-import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-
-const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600"] });
-
-export const metadata = {
-    title: "GoCart. - Shop smarter",
-    description: "GoCart. - Shop smarter",
-};
+import StoreProvider from "./StoreProvider";
+import "./globals.css";
+import { SignedOut, SignIn , SignedIn } from "@clerk/nextjs";
 
 export default function RootLayout({ children }) {
-    return (
-        <html lang="en"> 
-            <body className={outfit.className}>
-                <ClerkProvider>
-                    <StoreProvider>
-                        {children}
-                        <Toaster />
-                    </StoreProvider>
-                </ClerkProvider>
-            </body>
-        </html>
-    );
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <SignedIn>
+          <StoreProvider>
+            {children} {/* This will render the content of /store/layout.jsx if SignedIn */}
+          </StoreProvider>
+          </SignedIn>
+          <SignedOut>
+            {/* This div will only be rendered if the user is signed out */}
+            <div className="min-h-screen flex items-center justify-center">
+              <SignIn fallbackRedirectUrl="/store" routing="hash" />
+            </div>
+          </SignedOut>
+        </body>
+      </html>
+    </ClerkProvider>
+  );
 }

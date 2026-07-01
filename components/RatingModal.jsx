@@ -4,23 +4,59 @@ import { Star } from 'lucide-react';
 import React, { useState } from 'react'
 import { XIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@clerk/nextjs';
+import { useDispatch } from 'react-redux';
+import axios from 'axios';
+import { addRating } from '@/lib/features/rating/ratingSlice';
 
 const RatingModal = ({ ratingModal, setRatingModal }) => {
+    const{getToken} = useAuth()
+    const dispatch = useDispatch()
 
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState('');
-
-    const handleSubmit = async () => {
-        if (rating < 0 || rating > 5) {
-            return toast('Please select a rating');
-        }
-        if (review.length < 5) {
-            return toast('write a short review');
-        }
-
-        setRatingModal(null);
+const handleSubmit = async () => {
+    // 1. Validation Checks
+    if (rating < 1 || rating > 5) {
+        toast.error('Please select a rating');
+        return;
     }
 
+    if (review.trim().length > 0 && review.trim().length < 5) {
+        toast.error('Please write a short review (at least 5 characters)');
+        return;
+    }
+
+    try {
+        // Manually ek loading toast dikhate hain
+        const loadingToast = toast.loading('Submitting your rating...');
+        
+        const token = await getToken();
+
+        const response = await axios.post('/api/rating', { 
+            orderId: ratingModal?.orderId, 
+            productId: ratingModal?.productId, 
+            rating, 
+            review 
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Loading wale toast ko hata kar success dikhayenge
+        toast.dismiss(loadingToast);
+
+        if (response?.data) {
+            toast.success('Rating submitted successfully!');
+            dispatch(addRating(response.data.rating));
+            setRatingModal(null); // Modal close
+        }
+
+    } catch (error) {
+        toast.dismiss(); // Saare loading toasts hatao
+        console.error("Submission Error:", error);
+        toast.error(error.response?.data?.error || 'Failed to submit rating');
+    }
+};
     return (
         <div className='fixed inset-0 z-120 flex items-center justify-center bg-black/10'>
             <div className='bg-white p-8 rounded-lg shadow-lg w-96 relative'>
@@ -44,9 +80,12 @@ const RatingModal = ({ ratingModal, setRatingModal }) => {
                     value={review}
                     onChange={(e) => setReview(e.target.value)}
                 ></textarea>
-                <button onClick={e => toast.promise(handleSubmit(), { loading: 'Submitting...' })} className='w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition'>
-                    Submit Rating
-                </button>
+             <button 
+    onClick={handleSubmit} 
+    className='w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition'
+>
+    Submit Rating
+</button>
             </div>
         </div>
     )

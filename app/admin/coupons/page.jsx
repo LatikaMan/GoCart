@@ -53,15 +53,18 @@ export default function AdminCoupons() {
                 Authorization: `Bearer ${token}`,
             },
         })
-        toast.success(data.message)
         await fetchCoupons()
+        setNewCoupon({
+            code: '', description: '', discount: '',
+            forNewUser: false, forMember: false, isPublic: false, expiresAt: new Date()
+        })
+        return data.message
         
       } catch (error) {
-        toast.error("Failed to add coupon")
-        
+        throw error
       }
     }
-
+    
     const handleChange = (e) => {
         setNewCoupon({ ...newCoupon, [e.target.name]: e.target.value })
     }
@@ -108,7 +111,7 @@ export default function AdminCoupons() {
                 <label>
                     <p className="mt-3">Coupon Expiry Date</p>
                     <input type="date" placeholder="Coupon Expires At" className="w-full mt-1 p-2 border border-slate-200 outline-slate-400 rounded-md"
-                        name="expiresAt" value={format(newCoupon.expiresAt, 'yyyy-MM-dd')} onChange={handleChange}
+                        name="expiresAt" value={format(new Date(newCoupon.expiresAt), 'yyyy-MM-dd')} onChange={handleChange} required
                     />
                 </label>
 
@@ -161,7 +164,7 @@ export default function AdminCoupons() {
                                     <td className="py-3 px-4 font-medium text-slate-800">{coupon.code}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.description}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.discount}%</td>
-                                    <td className="py-3 px-4 text-slate-800">{format(coupon.expiresAt, 'yyyy-MM-dd')}</td>
+                                    <td className="py-3 px-4 text-slate-800">{format(new Date(coupon.expiresAt), 'yyyy-MM-dd')}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.forNewUser ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.forMember ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">

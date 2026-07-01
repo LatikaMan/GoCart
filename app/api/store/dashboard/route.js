@@ -1,43 +1,53 @@
-import { NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
-import authSeller from "../../../middlewares/authSeller";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-
-
-export async function GET(request) {
+export async function GET() {
     try {
-        const { userId } = gethAuth(request);
-        const storeId = await authSeller(userId);
-        const orders = await prisma.order.findMany({
-            where: {
-                storeId,
-            }})
-        const products = await prisma.product.findMany({
-            where: {
-                storeId,
-            }})
-                
-         const ratings = await prisma.rating.findMany({
-            where: {
-                productId: {in: products.map(products => product.id)}},
-            
-            include:
-                {user:true , product:true}
-            })        
-            const dashboardData = {
-                totalOrders: orders.length,
-                totalProducts: products.length,
-                totalRatings: ratings.length,
-                ratings,
-                totalEarnings:Math.round(orders.reduce((acc,order)=> acc+order.total , 0)),
+        const { userId } = await auth();
+        
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const store = await prisma.store.findFirst({
+            where: { userId },
+            include: {
+                Product: {
+                    include: {
+                        rating: {
+                            include: {
+                                user: true
+                            }
+                        }
+                    }
+                }
             }
-            return new Response(JSON.stringify(dashboardData),{status:200})
+        });
 
+        if (!store) {
+            return NextResponse.json({ error: "Store not found" }, { status: 404 });
+        }
 
+        // Calculate dashboard statistics
+        const totalProducts = store.Product.length;
+        const totalOrders = 0; // Implement order logic here
+        const totalEarnings = 0; // Implement earnings logic here
+        
+        // Format ratings to include product info as required by the frontend
+        const ratings = store.Product.flatMap(product => 
+            product.rating.map(r => ({ ...r, product }))
+        );
+
+        return NextResponse.json({
+            totalProducts,
+            totalEarnings,
+            totalOrders,
+            ratings
+        }, { status: 200 });
 
     } catch (error) {
-        console.log("Error in fetching dashboard data:",error);
-        return new Response(JSON.stringify({error:"Internal server error"},{status:500}));
+        console.error("DASHBOARD_FETCH_ERROR:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

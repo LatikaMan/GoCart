@@ -1,17 +1,18 @@
 import StoreLayout from "@/components/store/StoreLayout";
+import { SignedIn } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata = {
-    title: "GoCart. - Store Dashboard",
-    description: "GoCart. - Store Dashboard",
+  title: "GoCart - Store",
+  description: "GoCart - Store",
 };
 
-export default function RootAdminLayout({ children }) {
-
-    return (
-        <>
-            <StoreLayout>
-                {children}
-            </StoreLayout>
-        </>
-    );
+export default function RootStoreLayout({ children }) {
+  return (
+   
+    <SignedIn>
+        <StoreLayout>{children}</StoreLayout>
+    </SignedIn>
+    
+  );
 }
