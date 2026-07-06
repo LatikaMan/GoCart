@@ -16,9 +16,13 @@ export default function StoreManageProducts() {
     const fetchProducts = async () => {
         try {
             const token = await getToken()
-            const {data} = await axios.get("/api/store/products", {
+            const {data} = await axios.get("/api/store/product", {
                 headers: {  Authorization: `Bearer ${token}` } })
-            setProducts(data.products.sort((a, b) => b.createdAt - a.createdAt)) 
+            setProducts(
+  data.products.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  )
+); 
         } catch (error) {
             toast.error("Failed to fetch products")
         } finally {

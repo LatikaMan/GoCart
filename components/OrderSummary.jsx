@@ -71,7 +71,7 @@ if(coupon){
 }
             
 
-            const { data } = await axios.post('/api/order', orderData, {
+            const { data } = await axios.post('/api/orders', orderData, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

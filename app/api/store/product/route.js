@@ -10,6 +10,9 @@ export async function POST(request) {
     try {
         // 1. Clerk Auth Check
         const authData = await auth();
+        if (!authData) {
+            throw new Error("Clerk auth middleware not detected");
+        }
         const userId = authData?.userId;
         
         if (!userId) {
@@ -39,24 +42,37 @@ export async function POST(request) {
         // 5. ImageKit Upload
         const imagesUrls = await Promise.all(
             images.map(async (img) => {
-                const buffer = Buffer.from(await img.arrayBuffer());
-                const response = await imagekit.upload({
-                    file: buffer,
-                    fileName: `product-${Date.now()}`,
-                    folder: "products",  
-                });
+                try {
+                    const buffer = Buffer.from(await img.arrayBuffer());
+                    const response = await imagekit.upload({
+                        file: buffer,
+                        fileName: `product-${Date.now()}`,
+                        folder: "products",  
+                    });
 
-                const url = imagekit.url({
-                    src: response.url,
-                    transformation: [    
-                        { quality: "auto" },
-                        { format: "webp" },
-                        { width: "1024" }
-                    ]
-                });
-                return url;
+                    const url = imagekit.url({
+                        src: response.url,
+                        transformation: [    
+                            { quality: "auto" },
+                            { format: "webp" },
+                            { width: "1024" }
+                        ]
+                    });
+                    return url;
+                } catch (error) {
+                    if (error.response && error.response.status === 404) {
+                        console.error("ImageKit upload failed with 404 status code. Please check your ImageKit configuration.");
+                        return null; 
+                    } else if (error.response && error.response.status === 400) {
+                        console.error("ImageKit upload failed with 400 status code. Please check your image files.");
+                        return null; 
+                    }
+                    throw error;
+                }
             })
         );
+        // filter out null values
+        const filteredImagesUrls = imagesUrls.filter(url => url !== null);
 
         // 6. Prisma Database Insert
         await prisma.product.create({
@@ -67,7 +83,7 @@ export async function POST(request) {
                 mrp,
                 price,
                 category,
-                images: imagesUrls,
+                images: filteredImagesUrls,
             }
         });
 
@@ -80,6 +96,14 @@ export async function POST(request) {
         console.error("ERROR STACK:", error?.stack);
         console.error("--- NEXT.JS API POST ERROR END ---");
         
+        if (error.message.includes("Clerk auth middleware not detected")) {
+            return NextResponse.json({ error: "Clerk auth middleware not detected" }, { status: 500 });
+        }
+
+        if (error.message.includes("ImageKit upload failed with 404 status code")) {
+            return NextResponse.json({ error: "ImageKit upload failed" }, { status: 500 });
+        }
+
         return NextResponse.json(
             { error: error?.message || "Internal server error" }, 
             { status: 500 }
