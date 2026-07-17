@@ -43,6 +43,10 @@ export async function POST(request) {
         const imagesUrls = await Promise.all(
             images.map(async (img) => {
                 try {
+                    // Check if imagekit is initialized
+                    if (!imagekit) {
+                        throw new Error("ImageKit not initialized");
+                    }
                     const buffer = Buffer.from(await img.arrayBuffer());
                     const response = await imagekit.upload({
                         file: buffer,
@@ -102,6 +106,10 @@ export async function POST(request) {
 
         if (error.message.includes("ImageKit upload failed with 404 status code")) {
             return NextResponse.json({ error: "ImageKit upload failed" }, { status: 500 });
+        }
+
+        if (error.message.includes("ImageKit not initialized")) {
+            return NextResponse.json({ error: "ImageKit not initialized" }, { status: 500 });
         }
 
         return NextResponse.json(
