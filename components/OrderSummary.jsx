@@ -61,14 +61,30 @@ const OrderSummary = ({ totalPrice, items }) => {
 
         try {
             const token = await getToken();
+            const normalizedItems = items.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+            }));
+
+            const normalizedAddressId =
+                selectedAddress?.id ||
+                selectedAddress?.addressId ||
+                selectedAddress?._id;
+
            const orderData = {
-    items,
-    addressId: selectedAddress.id, // 🔴 'address' ko badalkar 'addressId' kijiye
-    paymentMethod,
-}
-if(coupon){
-    orderData.couponCode = coupon.code; // 🔴 'coupon' ko badalkar 'couponCode' kijiye
-}
+                items: normalizedItems,
+                addressId: normalizedAddressId,
+                paymentMethod,
+            }
+
+            if (coupon) {
+                orderData.couponCode = coupon.code;
+            }
+
+            if (!normalizedAddressId) {
+                toast.error('Selected address is missing an ID');
+                throw new Error('Selected address is invalid');
+            }
             
 
             const { data } = await axios.post('/api/orders', orderData, {
@@ -78,6 +94,9 @@ if(coupon){
             });
 
             if (paymentMethod === 'STRIPE') {
+                if (!data?.session?.url) {
+                    throw new Error('Stripe session url missing');
+                }
                 window.location.href = data.session.url;
             } else {
                 toast.success('Order placed successfully');

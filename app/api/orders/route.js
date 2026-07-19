@@ -28,15 +28,23 @@ export async function POST(request) {
 
         const couponCode = body.couponCode || body.coupon;
 
-        if (
-            !addressId ||
-            !items ||
-            !currentPaymentMethod ||
-            !Array.isArray(items) ||
-            items.length === 0
-        ) {
+        if (!Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
-                { error: "Invalid Request" },
+                { error: "Cart items are missing or invalid" },
+                { status: 400 }
+            );
+        }
+
+        if (!addressId) {
+            return NextResponse.json(
+                { error: "Address is missing" },
+                { status: 400 }
+            );
+        }
+
+        if (!currentPaymentMethod) {
+            return NextResponse.json(
+                { error: "Payment method is missing" },
                 { status: 400 }
             );
         }
