@@ -75,7 +75,7 @@ export async function POST(request) {
         }
 
         // Plus Member Coupon
-        const isPlusMember = has({ plan: "plus" });
+        const isPlusMember = typeof has === "function" ? has({ plan: "plus" }) : false;
 
         if (coupon && coupon.forMember && !isPlusMember) {
             return NextResponse.json(
@@ -168,7 +168,15 @@ export async function POST(request) {
         }
         if(currentPaymentMethod === PaymentMethod.STRIPE){
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-            const origin = request.headers.get("origin");
+            const origin = request.nextUrl?.origin || request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL;
+
+            if (!origin) {
+                return NextResponse.json(
+                    { error: "Missing application origin for Stripe checkout" },
+                    { status: 500 }
+                );
+            }
+
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ["card"],
                 line_items: [
