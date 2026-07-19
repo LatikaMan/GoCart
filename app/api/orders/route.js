@@ -177,30 +177,44 @@ export async function POST(request) {
                 );
             }
 
-            const session = await stripe.checkout.sessions.create({
-                payment_method_types: ["card"],
-                line_items: [
-                    {
-                        price_data: {
-                            currency: "usd",
-                            product_data: {
-                                name: "Order Payment",
+            try {
+                const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ["card"],
+                    line_items: [
+                        {
+                            price_data: {
+                                currency: "usd",
+                                product_data: {
+                                    name: "Order Payment",
+                                },
+                                unit_amount: Math.round(fullAmount * 100),
                             },
-                            unit_amount: Math.round(fullAmount * 100),
+                            quantity: 1,
                         },
-                        quantity: 1,
-                    }],
-                    expires_at: Math.floor(Date.now() / 1000) + 30 * 60 , // 1 hour from now
-                mode: "payment",
-                success_url: `${origin}/loading?nextUrl=orders`,
-                cancel_url: `${origin}/cart`,
-                metadata: {
-                    orderIds: orderIds.join(","),
-                    userId: userId,
-                    appId :'gocart',
-                },
-            });
-            return NextResponse.json({session})
+                    ],
+                    mode: "payment",
+                    success_url: `${origin}/loading?nextUrl=orders`,
+                    cancel_url: `${origin}/cart`,
+                    metadata: {
+                        orderIds: orderIds.join(","),
+                        userId: userId,
+                        appId: "gocart",
+                    },
+                });
+
+                return NextResponse.json({ session });
+            } catch (stripeError) {
+                console.error("Stripe checkout session creation failed:", stripeError);
+
+                return NextResponse.json(
+                    {
+                        error:
+                            stripeError?.message ||
+                            "Failed to create Stripe checkout session",
+                    },
+                    { status: 500 }
+                );
+            }
         }
 
         await prisma.user.update({
