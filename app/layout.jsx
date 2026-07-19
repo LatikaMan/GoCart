@@ -8,17 +8,17 @@ export default function RootLayout({ children }) {
     <ClerkProvider>
       <html lang="en">
         <body>
-          <SignedIn>
           <StoreProvider>
-            {children} {/* This will render the content of /store/layout.jsx if SignedIn */}
+            <SignedIn>
+              {children} {/* This will render the content of /store/layout.jsx if SignedIn */}
+            </SignedIn>
+            <SignedOut>
+              {/* This div will only be rendered if the user is signed out */}
+              <div className="min-h-screen flex items-center justify-center">
+                <SignIn fallbackRedirectUrl="/store" routing="hash" />
+              </div>
+            </SignedOut>
           </StoreProvider>
-          </SignedIn>
-          <SignedOut>
-            {/* This div will only be rendered if the user is signed out */}
-            <div className="min-h-screen flex items-center justify-center">
-              <SignIn fallbackRedirectUrl="/store" routing="hash" />
-            </div>
-          </SignedOut>
         </body>
       </html>
     </ClerkProvider>

@@ -1,16 +1,21 @@
-import stripe from "stripe";
+import Stripe from "stripe";
 import prisma from "@/lib/prisma";
 
-const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
     try {
-        const body = await req.json();
+        const body = await req.text();
         const sig = req.headers.get("stripe-signature");
-        const event = stripeInstance.webhooks.constructEvent(body, sig, process.env.STRIPE_SECRET_KEY);
+        const event = stripeInstance.webhooks.constructEvent(
+            body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
          const handlePaymentIntent = async (paymentIntentId, isPaid) => {
-            const session = await stripeInstance.Checkout.sessions.list({
+            const session = await stripeInstance.checkout.sessions.list({
                 payment_intent: paymentIntentId,
+                limit: 1,
 
             })
             const {orderIds, userId, appId} = session.data[0].metadata
@@ -32,10 +37,9 @@ export async function POST(req) {
         }else{
             await Promise.all(orderIdsArray.map(async (orderId) => {
                 await prisma.order.delete({
-                    where: {id: orderId},
+                    where: { id: orderId },
                 });
-            })
-        );
+            }))
         }
     }
         switch (event.type) {
