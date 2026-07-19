@@ -5,8 +5,22 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
     try {
+        if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+            return new Response(
+                JSON.stringify({ error: "Stripe webhook environment variables are not configured" }),
+                { status: 500 }
+            );
+        }
+
         const body = await req.text();
         const sig = req.headers.get("stripe-signature");
+
+        if (!sig) {
+            return new Response(
+                JSON.stringify({ error: "Missing Stripe signature header" }),
+                { status: 400 }
+            );
+        }
 
         const event = stripeInstance.webhooks.constructEvent(
             body,
