@@ -274,21 +274,6 @@ export async function GET(request) {
         const orders = await prisma.order.findMany({
             where: {
                 userId,
-                OR: [
-                    {
-                        paymentMethod: PaymentMethod.COD,
-                    },
-                    {
-                        AND: [
-                            {
-                                paymentMethod: PaymentMethod.STRIPE,
-                            },
-                            {
-                                isPaid: true,
-                            },
-                        ],
-                    },
-                ],
             },
 
             include: {
